@@ -5,8 +5,10 @@ Created on Thu Jan 15 12:22:53 2015
 @author: jmwilson
 """
 import numpy as np
+import math
 import matplotlib.pyplot as plt
 from mpl_toolkits.basemap import Basemap
+import RELM_inpoly as poly
 import pickle
 
 
@@ -20,45 +22,53 @@ import pickle
 # ROC dict keys = 'Hits', 'Falsies', 'size', 'score'
 #
 # UCERF2 bounding coords: lon=[-124.9322, -114.5771], lat=[31.5676, 42.2008]
+# RELM:   lon=[-125.4, -113.1],       lat=[31.5, 43.0]
+# 
 #==============================================================================
+
+polylats = [430, 430, 394, 357, 343, 329, 322, 317, 315, 319, 328, 337, 342, 377, 402, 405]
+polylons = [-1252, -1190, -1190, -1140, -1131, -1135, -1136, -1145, -1171, -1179, -1184, -1210, -1216, -1238, -1254, -1254]
 
 file_loc = "/home/jmwilson/Desktop/RELM"
 
-
 sim_rec = np.load(file_loc+'/sim_output/sim_rec.p')
-cat_rec = np.load('../cats/cat_rec_Feb-05-2015.p')
-rates_array = np.load(file_loc+'/BASScast/kml/virtcal-hist_grid_bassomori.p')
+cat_rec = np.load('../cats/cat_rec_Mar-05-2015.p')
+rates_array = np.load(file_loc+'/sim_output/opt/hist/hist_grid_omori.p')
 
 simx = sim_rec['hypo_lon']
 simy = sim_rec['hypo_lat']
 realx = cat_rec['hypo_lon']
 realy = cat_rec['hypo_lat']
 
+calipoly = zip(polylons, polylats)
+polyvectors = poly.getPolyVecs(calipoly)
 #==============================================================================
 # #Basemap plotting
 #==============================================================================
 fig = plt.figure(figsize=(14,10.5))
 
-m = Basemap(projection='cyl', llcrnrlat=31.5676, urcrnrlat=42.2008, llcrnrlon=-124.9322, urcrnrlon=-114.5771, resolution='i')
+m = Basemap(projection='cyl', llcrnrlat=31.3, urcrnrlat=43.2, llcrnrlon=-125.6, urcrnrlon=-112.9, resolution='i')
 m.drawcoastlines()
-m.drawmapboundary(fill_color='PaleTurquoise')
+#m.drawmapboundary(fill_color='PaleTurquoise')
 #m.fillcontinents(color='lemonchiffon',lake_color='PaleTurquoise', zorder=0)
 m.drawstates()
 m.drawcountries()
 m.drawparallels(np.arange(31,43,2),labels=[1,0,0,0])
 m.drawmeridians(np.arange(-124,-115,2),labels=[0,0,0,1])
-
-maxtick = rates_array[2].max()
+#maxtick = rates_array[2].max()
 #contlevels = np.arange(0, maxtick+1, maxtick/50)
-m.contourf(rates_array[0], rates_array[1], rates_array[2], 50)
+m.pcolor(rates_array[0], rates_array[1], np.log10(rates_array[2]))
 #m.plot(simx, simy, 'r.')
-m.plot(realx, realy, 'm.')
+#m.plot(realx, realy, 'k.')
 #plt.legend()
-plt.colorbar()
+#plt.colorbar()
 #plt.xlabel("Longitude")
 #plt.ylabel("Latitude")
-plt.show()
 
+for vect in polyvectors:
+     m.plot([vect[0][0]/10.0, vect[1][0]/10.0], [vect[0][1]/10.0, vect[1][1]/10.0], 'g-')
+
+plt.show()
 
 
 #==============================================================================

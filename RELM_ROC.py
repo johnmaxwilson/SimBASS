@@ -6,11 +6,13 @@ Created on Tue Jan 27 10:02:55 2015
 """
 #==============================================================================
 # TODO: Consider restrictions on simulation bins (have UCERF2 faults?)
+#       -restrict to calipoly
 #==============================================================================
 
 import numpy as np
 import matplotlib.pyplot as plt
 import pickle
+import RELM_inpoly as poly
 
 def ROC_fnc(sim_bins, cat_dict, maxbins):
     A=0.0
@@ -38,24 +40,33 @@ def ROC_fnc(sim_bins, cat_dict, maxbins):
     Falsies_f = np.array(Falsies_f)
     return Hits_f, Falsies_f
 
-sim_loc = "/home/jmwilson/Desktop/RELM/BASScast/kml"
+sim_loc = "/home/jmwilson/Desktop/RELM/sim_output"
 cat_loc = "/home/jmwilson/Desktop/RELM/cats"
 finaldat = []
 
 
-simdat = open(sim_loc + '/virtcal-hist_grid_bassomori.p', 'r')
+simdat = open(sim_loc + '/opt/hist/hist_grid_omori.p', 'r')
 sim_info = pickle.load(simdat)
-lonmin = int(min(sim_info[0][0])*10)
-latmin = int(min(sim_info[1][0])*10)
-sim_grid = sim_info[2]
 simdat.close()
 
 catdat = open(cat_loc+'/opt/hist/hist_dict_omori.p', 'r')
 cat_hist_dict = pickle.load(catdat)
 catdat.close()
 
+#lonmin = int(round(min(sim_info[0][0])*10))
+#latmin = int(round(min(sim_info[1][0])*10))
+lonlist = np.array(sim_info[0][0])*10
+lonlist = lonlist.round()
+latlist = np.array(sim_info[1][0])*10
+latlist = latlist.round()
+binlocs = np.array([[(x,y) for x in lonlist.astype(int)] for y in latlist.astype(int)])
+
+sim_grid = sim_info[2]
+
+
 # Sort simulation by number of events in bin, only include bins with either sim or cat events
-sim_flat = [[(i+lonmin, j+latmin), sim_grid[j][i]] for j in xrange(len(sim_grid)) for i in xrange(len(sim_grid[0]))]# if sim_grid[j][i]>0 or (i+lonmin, j+latmin) in cat_hist_dict]
+sim_flat = [[(i+min(lonlist), j+min(latlist)), sim_grid[j][i]] for j in xrange(len(sim_grid)) for i in xrange(len(sim_grid[0]))]# if sim_grid[j][i]>0 or (i+lonmin, j+latmin) in cat_hist_dict]
+
 sim_flat = [line+[1] if line[0] in cat_hist_dict else line+[0] for line in sim_flat]
 
 sim_sorted = sorted(sim_flat, key=lambda x: x[2], reverse = True)

@@ -14,35 +14,36 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 from mpl_toolkits.basemap import Basemap
+import RELM_inpoly as poly
 
-def omori_el(quakes_f, binposit, size, abratio=2, strike=30, q=1.5, mag = 7.0, delm=1.0, mc=5.5, b=1.0, lam=1.76):
+def omori_el(quakes_f, binpos, abratio=2, strike=30, q=1.5, mag = 7.0, delm=1.0, mc=5.5, b=1.0, lam=1.76):
     flt = float
     convert = deg2km
     normalize = np.linalg.norm
     cosine = np.cos
     sine = np.sin
     
-    histog = np.zeros((len(binposit), len(binposit[0])))
+    histog = np.zeros((len(binpos), len(binpos[0])))
     
-    angledeg = -strike
+    angledeg = strike
     anglerad = math.pi/180.0*angledeg
     
     for quakeloc in quakes_f:
         
-        diff = binposit - quakeloc
+        diff = binpos - quakeloc
         diff = [[convert(pairs) for pairs in _] for _ in diff]
                 
-        transform = [[((coord[0]*cosine(anglerad)+coord[1]*sine(anglerad))*abratio/1,( -coord[0]*sine(anglerad)+coord[1]*cosine(anglerad))/1) for coord in _] for _ in diff]        
-                
+        transform = [[((coord[0]*cosine(anglerad)-coord[1]*sine(anglerad))*abratio,(coord[0]*sine(anglerad)+coord[1]*cosine(anglerad))) for coord in _] for _ in diff]        
+        
         rad = normalize(transform, axis=2)
         
         Nom = 10**(b*(mag-delm-mc))    
         r0 = 0.5*10**(0.5*mag-lam)
         chi = r0**(1-q)/Nom/(q-1)
-        dist = 1.0/chi/(r0 + rad)**q#/(2*pi*rad)
+        dist = 1.0/chi/(r0 + rad)**q/(2*pi*rad)
         
         #dist = Nom/np.sum(dist)*dist
-        #dist = np.ma.
+        dist = np.ma.fix_invalid(dist, fill_value=0).data
         
         histog += dist
     
@@ -51,22 +52,56 @@ def omori_el(quakes_f, binposit, size, abratio=2, strike=30, q=1.5, mag = 7.0, d
 
 def deg2km(degs):
     rE = 6371.0
-    latkm = math.pi/180.0*rE*degs[0]
-    lonkm = math.pi/180.0*rE*np.cos(math.pi/180.0*degs[0])*degs[1]
-    kms = (latkm, lonkm)
+    latkm = math.pi/180.0*rE*degs[1]/10.0
+    lonkm = math.pi/180.0*rE*np.cos(math.pi/180.0*degs[1]/10.0)*degs[0]/10.0
+    kms = (lonkm, latkm)
     return kms
 
 
-gridsize = 200
-numquakes = 1
+edge = 2
+lonmin = -1254
+lonmax = -1131
+latmin = 315
+latmax = 430
 
-quakes = [(gridsize/2+0.3, gridsize/2+0.3)]#np.random.random_sample((numquakes, 2))*gridsize#np.random.randint(0, gridsize,(numquakes,2))#
-binlocs = np.array([[(x,y) for x in xrange(gridsize)] for y in xrange(gridsize)])
+lonlist = np.arange(lonmin-edge, lonmax+edge+1, 1)
+latlist = np.arange(latmin-edge, latmax+edge+1, 1)
 
-hist_grid = omori_el(quakes, binlocs, gridsize)
+mglon, mglat = np.meshgrid(lonlist/10.0, latlist/10.0)
 
-plt.figure()
-#plt.imshow(hist_grid, interpolation='nearest')
-plt.pcolor(hist_grid)
-plt.colorbar()
+binlocs = np.array([[(x, y) for x in lonlist] for y in latlist])
+
+numquakes = 100
+
+eqlons = np.random.rand(numquakes)*(lonmax-lonmin)+lonmin#[0.5*(lonmax-lonmin)+lonmin+0.5]#
+eqlats = np.random.rand(numquakes)*(latmax-latmin)+latmin#[0.5*(latmax-latmin)+latmin+0.5]#
+eqlocs = zip(eqlons, eqlats)
+
+
+t0=time.time()
+hist_grid = omori_el(eqlocs, binlocs)
+print time.time()-t0
+
+plt.figure(figsize=(14, 10.5))
+plt.pcolor(mglon, mglat, hist_grid)
 plt.show()
+
+#==============================================================================
+# polyvectors = poly.getPolyVecs()
+# polymask = poly.makePolyMask(binlocs, polyvectors, ())
+# hist_grid_ma = np.ma.masked_array(hist_grid, mask=polymask)
+# 
+# plt.figure(figsize=(14, 10.5))
+# m = Basemap(projection='cyl', llcrnrlat=latmin/10.0, urcrnrlat=latmax/10.0, llcrnrlon=lonmin/10.0, urcrnrlon=lonmax/10.0, resolution='i')
+# #m.drawmapboundary(fill_color='PaleTurquoise')
+# #m.fillcontinents(color='lemonchiffon',lake_color='PaleTurquoise', zorder=0)
+# m.drawcoastlines()
+# m.drawstates()
+# m.drawcountries()
+# m.drawparallels(np.arange(latmin/10.0, (latmax+1)/10.0, 2),labels=[1,0,0,0])
+# m.drawmeridians(np.arange(lonmin/10.0, (lonmax+1)/10.0, 2),labels=[0,0,0,1])
+# m.pcolor(mglon, mglat, hist_grid_ma)
+#==============================================================================
+#==============================================================================
+# plt.show()
+#==============================================================================
