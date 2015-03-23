@@ -69,8 +69,11 @@ def getPolyVecs(poly=None):
     return polyvecs
 
 
-def makePolyMask(binpositions, polyvecs, maskshape):
+def makePolyMask(binpositions, polyvecs=None, maskshape=()):
+    if polyvecs==None:
+        polyvecs = getPolyVecs()
     #
+    binpositions = np.array(binpositions)
     masklist = np.zeros((np.shape(binpositions)[:-1])  + maskshape)
     #
     for j in xrange(len(binpositions)):
@@ -79,7 +82,7 @@ def makePolyMask(binpositions, polyvecs, maskshape):
             if inarea == True:
                 pass
             else:
-                masklist[j][i] = np.ones(maskshape)
+                masklist[j][i] = np.ones(maskshape).astype(int)
     #
     return np.array(masklist)
 #==============================================================================
@@ -101,11 +104,9 @@ def makePolyMask(binpositions, polyvecs, maskshape):
 # 
 # mglon, mglat = np.meshgrid([round(x/10.0,2) for x in lonlist], [round(x/10.0,2) for x in latlist])
 # 
-# #==============================================================================
-# # binpos = np.array([[(x, y) for x in lonlist] for y in latlist])
-# # 
-# # polymask = makePolyMask(binpos)
-# #==============================================================================
+# binpos = np.array([[(x, y) for x in lonlist] for y in latlist])
+# 
+# polymask = makePolyMask(binpos, polyvectors)
 # numtest = 100
 # testlons = np.random.rand(numtest)*(lonmax-lonmin)+lonmin
 # testlats = np.random.rand(numtest)*(latmax-latmin)+latmin
@@ -132,25 +133,9 @@ def makePolyMask(binpositions, polyvecs, maskshape):
 # m.drawcountries()
 # m.drawparallels(np.arange(latmin/10.0, (latmax+1)/10.0, 0.1))#,labels=[1,0,0,0])
 # m.drawmeridians(np.arange(lonmin/10.0, (lonmax+1)/10.0, 0.1))#,labels=[0,0,0,1])
-# #m.pcolor(mglon, mglat, polymask, alpha=0.5)
-# m.plot(testlons/10.0, testlats/10.0, 'm.')
+# m.pcolor(mglon, mglat, polymask, alpha=0.5)
+# #m.plot(testlons/10.0, testlats/10.0, 'm.')
 # for vect in polyvectors:
 #     m.plot([vect[0][0]/10.0, vect[1][0]/10.0], [vect[0][1]/10.0, vect[1][1]/10.0], 'g-')
-#     
-# plt.figure(figsize=(14, 10.5))
-# m = Basemap(projection='cyl', llcrnrlat=latmin/10.0, urcrnrlat=latmax/10.0, llcrnrlon=lonmin/10.0, urcrnrlon=lonmax/10.0, resolution='i')
-# m.drawcoastlines()
-# m.drawmapboundary(fill_color='PaleTurquoise')
-# m.fillcontinents(color='LemonChiffon',lake_color='PaleTurquoise', zorder=0)
-# m.drawstates()
-# m.drawcountries()
-# m.drawparallels(np.arange(latmin/10.0, (latmax+1)/10.0, 0.1))#,labels=[1,0,0,0])
-# m.drawmeridians(np.arange(lonmin/10.0, (lonmax+1)/10.0, 0.1))#,labels=[0,0,0,1])
-# m.plot(goodlons/10.0, goodlats/10.0, 'm.')
-# for vect in polyvectors:
-#==============================================================================
-#==============================================================================
-#     m.plot([vect[0][0]/10.0, vect[1][0]/10.0], [vect[0][1]/10.0, vect[1][1]/10.0], 'g-')
-# 
 # plt.show()
 #==============================================================================

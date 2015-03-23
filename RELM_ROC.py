@@ -14,19 +14,19 @@ import matplotlib.pyplot as plt
 import pickle
 import RELM_inpoly as poly
 
-def ROC_fnc(sim_bins, cat_dict, maxbins):
+def ROC_fnc(sim_bins, cat_dict, areasize):
     A=0.0
     B=0.0
     AplusC = float(len(cat_dict))
-    BplusD = float(len(sim_bins)-AplusC) #Here simbins should be considered
+    BplusD = float(areasize-AplusC)
     Hits_f = []
     Falsies_f = []
     h_apnd = Hits_f.append
     f_apnd = Falsies_f.append
     
-    for N_bins in xrange(maxbins):
+    for sbin in sim_bins:
         #print sim_bins[N_bins][0]
-        if sim_bins[N_bins][2] == 1:
+        if sbin[2] == 1:
             A += 1.0
         else:
             B += 1.0
@@ -55,17 +55,32 @@ catdat.close()
 
 #lonmin = int(round(min(sim_info[0][0])*10))
 #latmin = int(round(min(sim_info[1][0])*10))
-lonlist = np.array(sim_info[0][0])*10
-lonlist = lonlist.round()
-latlist = np.array(sim_info[1][0])*10
-latlist = latlist.round()
-binlocs = np.array([[(x,y) for x in lonlist.astype(int)] for y in latlist.astype(int)])
+lonlist = np.array(sim_info[0])
+#lonlist = lonlist.round()
+#lonlist = lonlist.astype(int)
+latlist = np.array(sim_info[1])
+#latlist = latlist.round()
+#latlist = latlist.astype(int)
 
 sim_grid = sim_info[2]
 
+binlocs = np.array([[(x,y) for x in lonlist] for y in latlist])
+polymask = poly.makePolyMask(binlocs)
 
-# Sort simulation by number of events in bin, only include bins with either sim or cat events
-sim_flat = [[(i+min(lonlist), j+min(latlist)), sim_grid[j][i]] for j in xrange(len(sim_grid)) for i in xrange(len(sim_grid[0]))]# if sim_grid[j][i]>0 or (i+lonmin, j+latmin) in cat_hist_dict]
+#sim_masked = np.ma.masked_array(sim_grid, mask=polymask)
+
+#==============================================================================
+# make flattened list of bins in calipoly, sort by forecast value and whether it's a hit
+#==============================================================================
+areasize = 0
+sim_flat = []
+for j in xrange(len(polymask)):
+    for i in xrange(len(polymask[0])):
+        if polymask[j][i] == 0:
+            areasize += 1
+            sim_flat.append([(binlocs[j][i][0], binlocs[j][i][1]), sim_grid[j][i]])
+
+#sim_flat = [[(i+min(lonlist), j+min(latlist)), sim_grid[j][i]] for j in xrange(len(sim_grid)) for i in xrange(len(sim_grid[0]))]# if sim_grid[j][i]>0 or (i+lonmin, j+latmin) in cat_hist_dict]
 
 sim_flat = [line+[1] if line[0] in cat_hist_dict else line+[0] for line in sim_flat]
 
@@ -73,18 +88,17 @@ sim_sorted = sorted(sim_flat, key=lambda x: x[2], reverse = True)
 sim_sorted = sorted(sim_sorted, key=lambda x: x[1], reverse = True)
 
 
-N_binsmax = len(sim_sorted)
-
 #ROC curve creation
-Hits, Falsies = ROC_fnc(sim_sorted, cat_hist_dict, N_binsmax)
+Hits, Falsies = ROC_fnc(sim_sorted, cat_hist_dict, areasize)
 
 #ROC area skill test
 df = [Falsies[i+1]-Falsies[i] for i in xrange(len(Falsies)-1)]
 df = np.array(df)
 score = sum(Hits[:-1]*df)-0.5
+print score
 
 finaldat.append({'Hits':Hits, 'Falsies':Falsies, 'score':score})
-    
+
 #Dumping data
 f = open(sim_loc+"/virtcal-ROC_data_omori.p", "w")
 pickle.dump(finaldat, f)

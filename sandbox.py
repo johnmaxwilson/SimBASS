@@ -8,60 +8,64 @@ import numpy as np
 import math
 import matplotlib.pyplot as plt
 import time
+from geographiclib.geodesic import Geodesic as ggp
 
 #==============================================================================
-# Masked arrays
+# Geo distances
 #==============================================================================
-import RELM_inpoly as poly
 
-edge = 2
-lonmin = -1254
-lonmax = -1131
-latmin = 315
-latmax = 430
+def sphericalDistNP(singleloc, otherlocs, distType='rad'):
+    Rearth = 6371.0    # km
+    deg2rad = math.pi/180.0
+    #
+    # phi = longitude, lambda = latitude
+    phis = singleloc[0]*deg2rad    
+    lams  = singleloc[1]*deg2rad
+    phif = otherlocs[..., 0]*deg2rad
+    lamf  = otherlocs[..., 1]*deg2rad
+    dlam = (lamf - lams)
+    dphi = (phif - phis)
+    #
+    #
+    if distType=='rad': dsig = vincentyNP(phis, lams, phif, lamf, dphi)
+    if distType=='rect':
+        lamav = (lamf+lams)/2.0
+        xsigs = vincentyNP(phis, lamav, phif, lamav*np.ones(phif.shape), dphi)
+        xsigs[dphi<0]*=-1
+        ysigs = vincentyNP(0.0, lams, 0.0, lamf, 0.0)
+        ysigs[dlam<0]*=-1
+        dsig = np.concatenate((xsigs[...,np.newaxis], ysigs[...,np.newaxis]), axis=xsigs.ndim)
+    #
+    Dist = Rearth * dsig
+    #
+    return Dist
+
+def vincentyNP(phis, lams, phif, lamf, dphi):
+    #this one is supposed to be bulletproof (Vincenty formula):
+    dsigma = np.arctan2( np.sqrt((np.cos(lamf)*np.sin(dphi))**2.0 + (np.cos(lams)*np.sin(lamf) - np.sin(lams)*np.cos(lamf)*np.cos(dphi))**2.0 ) , (np.sin(lams)*np.sin(lamf) + np.cos(lams)*np.cos(lamf)*np.cos(dphi))  )
+    #
+    return np.absolute(dsigma)
+
+def deg2km(deltadegs, lat):
+    Rearth = 6371.0
+    deg2rad = math.pi/180.0
+    latkm = Rearth*(deg2rad*deltadegs[1]) # Rearth * dlat
+    lonkm = Rearth*np.cos(deg2rad*lat)*(deg2rad*deltadegs[0])# Rearth * cos(lat) * dlon
+    kms = (lonkm, latkm)
+    return kms
 
 
-
-lonlist = np.arange(lonmin-edge, lonmax+edge+1, 1)
-latlist = np.arange(latmin-edge, latmax+edge+1, 1)
-
-mglon, mglat = np.meshgrid(lonlist/10.0, latlist/10.0)
-
-binlocs = np.array([[(x,y) for x in lonlist] for y in latlist])
-unmask = np.array([[1.5 for x in lonlist] for y in latlist])
-
-polyvectors = poly.getPolyVecs()
-polymask = poly.makePolyMask(binlocs, polyvectors, np.shape(unmask[0][0]))
-
-q = np.ma.masked_array(unmask, mask=polymask)
- 
-
-t0 = time.time()
+quakeloc = np.array([-116.1332, 33.7054])
+binloc = np.array([[-120.6, 36.3]])
 
 #==============================================================================
-# for j in xrange(len(q)):
-#     for i in xrange(len(q[0])):
-#         if polymask[j][i] == 0:
-#             31**4
+# print np.linalg.norm(deg2km((binloc[0]-quakeloc), (binloc[0][1]+quakeloc[1])/2.0))
+# print np.linalg.norm(sphericalDistNP(quakeloc, binloc, distType='rect')[0])
+# print sphericalDistNP(quakeloc, binloc, distType='rad')[0]
+# print np.linalg.norm((ggp.WGS84.Inverse((quakeloc[1]+binloc[0][1])/2.0, quakeloc[0], (quakeloc[1]+binloc[0][1])/2.0, binloc[0][0])['s12']/1000.0, ggp.WGS84.Inverse(quakeloc[1], 0.0, binloc[0][1], 0.0)['s12']/1000.0))
+# print ggp.WGS84.Inverse(quakeloc[1], quakeloc[0], binloc[0][1], binloc[0][0])['s12']/1000.0
 #==============================================================================
-        
-for row in q:
-    for el in row:
-        31**4
 
-print time.time()-t0
-
-#==============================================================================
-# plotarray = []
-# for row in q[~q.mask]:
-#     for coord in row:
-#         plotarray.append(coord)
-#         
-# 
-# plt.figure(figsize=(16,12))
-# plt.plot([coord[0] for coord in plotarray], [coord[1] for coord in plotarray], 'k.')
-# #plt.pcolor(mglon, mglat, polymask)
-#==============================================================================
-#==============================================================================
-# plt.show()
-#==============================================================================
+print deg2km((binloc[0]-quakeloc), (binloc[0][1]+quakeloc[1])/2.0)
+print sphericalDistNP(quakeloc, binloc, distType='rect')[0]
+print (ggp.WGS84.Inverse((quakeloc[1]+binloc[0][1])/2.0, quakeloc[0], (quakeloc[1]+binloc[0][1])/2.0, binloc[0][0])['s12']/1000.0, ggp.WGS84.Inverse(quakeloc[1], 0.0, binloc[0][1], 0.0)['s12']/1000.0)

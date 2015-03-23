@@ -44,7 +44,7 @@ def collect_events(simdat_f, minmag):
             if hypodas != "NA":
                 for faultline in faults:
                     #VirtCal needs a -1 after simline[5] (indexing offset)
-                    if faultline[:2] == ['201', strng(intgr(simline[5])-1)]:
+                    if faultline[:2] == ['201', strng(intgr(simline[5]))]:#-1)]:
                         record = True                    
                     elif record == True and faultline[0] == '202':
                         vapnd(faultline)
@@ -69,9 +69,9 @@ def collect_events(simdat_f, minmag):
 event_names = 'event_id, magnitude, time, duration, sid, depth_lo, depth_hi, das_lo, das_hi, hypo_depth, hypo_das, area, mean_slip, moment, shear_before, shear_after, normal_before, normal_after, hypo_lat, hypo_lon'
 # anss_elements = 'date, hypo_lat, hypo_lon, magnitude, depth'
 
-file_loc = "/home/jmwilson/Desktop/RELM/sim_output"
+file_loc = "/home/jmwilson/Desktop/raw_output/allcal2/allcal/version_1a"
 #!!VirtCal needs a -1 in the fault ID index!!
-simdat = open(file_loc + "/ALLCAL2_eqsim_out_v2.d","r")
+simdat = open(file_loc + "/ALLCAL2-30k-output[3-24-11].converted","r")
 t0= time.time()
 
 events, ansslike = collect_events(simdat, 5.5)
