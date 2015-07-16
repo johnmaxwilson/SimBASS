@@ -1,78 +1,85 @@
-
 # -*- coding: utf-8 -*-
 """
 Created on Thu Dec  4 14:55:53 2014
 
 @author: jmwilson
 """
-
-import math
-import numpy as np
-import matplotlib.pyplot as plt
-import time
-from mpl_toolkits.basemap import Basemap
-
-sidesize = 200
-hist_grid = np.zeros((sidesize, sidesize))
-num = 1
-
-abratio = 2
-strike = 30
-angledeg = -strike
-anglerad = math.pi/180.0*angledeg
-
-mag=7.0
-q=1.5
-delm=1.0
-mc=5.5
-b=1.0
-lam=1.76
-
-centers = [(sidesize/2+0.3, sidesize/2+0.3)]#np.random.random_sample((num, 2))*sidesize#np.random.randint(0, sidesize,(num,2))#
-binlocs = np.array([[(x,y) for x in xrange(sidesize)] for y in xrange(sidesize)])
-
-
-for center in centers:
-    diff = binlocs - center
-    transform = [[((coord[0]*math.cos(anglerad)+coord[1]*math.sin(anglerad))*abratio/1,( -coord[0]*math.sin(anglerad)+coord[1]*math.cos(anglerad))/1) for coord in _] for _ in diff]
-    rad = np.linalg.norm(transform, axis=2)
-    #dist = 1.0/(2*np.pi*10**2)*np.exp(-(rad**2)/(2.0*10**2))
-    
-    
-    Nom = 10**(b*(mag-delm-mc))    
-    r0 = 0.5*10**(0.5*mag-lam)
-    chi = r0**(1-q)/Nom/(q-1)
-    dist = 1/chi*(r0 + rad)**-q/(2*pi*rad)
-    
-    #dist = Nom/np.sum(dist)*dist
-    dist = np.ma.    
-    
-    hist_grid += dist
-    print Nom
-
-plt.figure()
-#plt.imshow(hist_grid, interpolation='nearest')
-plt.pcolor(hist_grid)
-plt.colorbar()
-plt.show()
-print np.sum(hist_grid)
-
 #==============================================================================
-# mag=9.0
-# q=1.5
-# delm=1.0
-# mc=4.5
-# b=1.0
-# lam=1.76
-# r0 = 0.5*10**(0.5*mag-lam)
-# Nom = 10**(b*(mag-delm-mc))
+# import numpy as np
+# import math
+# import matplotlib.pyplot as plt
+# import pickle
+# import time
 # 
-# rad = np.arange(1,100,0.1)
-# dist = (r0 + rad)**-q/rad
-# dist = Nom/np.sum(dist)*dist
+# from mpl_toolkits.basemap import Basemap
+# from scipy.stats import norm
+# from scipy.spatial import KDTree
 # 
-# plt.figure()
-# plt.loglog(rad, dist)
+# import ETAS_tools as tools
+# x = np.arange(-125.4, -113.1, 0.1)
+# y = np.arange(31.5, 43.0, 0.1)
+# xx, yy = np.meshgrid(x, y)
+# xy = np.c_[xx.ravel(), yy.ravel()]
+# 
+# binmask = []
+# for coord in xy:
+#     if tools.isinPoly(coord):
+#         binmask.append([0,0])
+#     else:
+#         binmask.append([1,1])
+# binmask = np.array(binmask)
+# 
+# 
+# tree = KDTree(maskedxy)
+# res = tree.query_ball_point([-125.5, 31.3], 0.4)
+# for ind in res:
+#     print xy[ind]
+# 
+# #==============================================================================
+# # plt.pcolor(x, y, tree.query(xy)[1].reshape(11, 11))
+# # plt.plot(points[:,0], points[:,1], 'ko')
+# # plt.show()
+# #==============================================================================
 #==============================================================================
 
+#==============================================================================
+# import numpy as np
+# import matplotlib.pyplot as plt
+# import matplotlib.animation as animation
+# 
+# fig = plt.figure()
+# 
+# def f(x, y):
+#     return np.sin(x) + np.cos(y)
+# 
+# test = np.zeros((25,25))
+# rad = 0
+# ims = []
+# for step in range(70):
+#     for i in range(len(test)):
+#         for j in range(len(test[0])):
+#             cellrad = math.sqrt((i-12)**2+(j-12)**2)
+#             if cellrad < rad and cellrad > rad-1:
+#                 pass#test[i,j] += 1
+#             #
+#         #
+#     #
+#     im = plt.imshow(test)
+#     ims.append([im])
+#     rad += 1
+# 
+# ani = animation.ArtistAnimation(fig, ims, interval=50, blit=True,
+#     repeat_delay=0)
+# 
+# #ani.save('/home/jmwilson/Desktop/dynamic_images.mp4')
+#==============================================================================
+
+
+#==============================================================================
+# plt.show()
+#==============================================================================
+
+
+x = np.linspace(0,1,100)
+plt.plot(x, -x*np.log(x))
 plt.show()
