@@ -1,2 +1,2 @@
-# RELM-like
-RELM-like earthquake forecast analysis and comparison
+# SimBass
+Off-fault seismicity modeling for earthquake simulators, allowing RELM-like spatial forecast verification
