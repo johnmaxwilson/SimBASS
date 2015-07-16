@@ -9,6 +9,7 @@ import numpy as np
 import math
 import matplotlib.pyplot as plt
 from mpl_toolkits.basemap import Basemap
+import h5py
 
 #Schorlemmer 07 RELM testing area
 polylats = [430, 430, 394, 357, 343, 329, 322, 317, 315, 319, 328, 337, 342, 377, 402, 405]
@@ -85,6 +86,66 @@ def makePolyMask(binpositions, polyvecs=None, maskshape=()):
                 masklist[j][i] = np.ones(maskshape).astype(int)
     #
     return np.array(masklist)
+
+
+def getFaultCoords(faultfile="../ALLCAL2_Faults/nocreep/ALLCAL2_VQ_faults_3km.h5"):
+    faults = h5py.File(faultfile,'r')
+    vert_coords = []
+    for vert in faults['vertices']:
+        coord = (int(round(vert[2]*10)),int(round(vert[1]*10)))
+        if coord not in vert_coords:
+            vert_coords.append(coord)
+    vert_coords = np.array(vert_coords)
+    return vert_coords
+
+def makeFaultMask(binpositions, vertcoords=None, maskshape=()):
+    #
+    if vertcoords == None:
+        vertcoords = getFaultCoords()
+    minlon = np.min(binpositions[...,0])
+    minlat = np.min(binpositions[...,1])
+    masklist = np.ones((np.shape(binpositions)[:-1])  + maskshape)
+    #
+    for vert in vertcoords:
+        masklist[vert[1]-minlat][vert[0]-minlon] = np.zeros(maskshape).astype(int)
+
+    return masklist
+    
+def sphericalDistNP(singleloc, otherlocs, distType='rad'):
+    Rearth = 6371.0    # km
+    deg2rad = math.pi/180.0
+    #
+    # phi = longitude, lambda = latitude
+    phis = singleloc[0]*deg2rad    
+    lams  = singleloc[1]*deg2rad
+    phif = otherlocs[..., 0]*deg2rad
+    lamf  = otherlocs[..., 1]*deg2rad
+    dlam = (lamf - lams)
+    dphi = (phif - phis)
+    #
+    #
+    if distType=='rad': dsig = vincentyNP(phis, lams, phif, lamf, dphi)
+    if distType=='rect':
+        lamav = (lamf+lams)/2.0
+        xsigs = vincentyNP(phis, lamav, phif, lamav*np.ones(phif.shape), dphi)
+        xsigs[dphi<0]*=-1
+        ysigs = vincentyNP(phis, lams, phis*np.ones(lamf.shape), lamf, 0.0)
+        ysigs[dlam<0]*=-1
+        dsig = np.concatenate((xsigs[...,np.newaxis], ysigs[...,np.newaxis]), axis=xsigs.ndim)
+    #
+    Dist = Rearth * dsig
+    #
+    return Dist
+
+def vincentyNP(phis, lams, phif, lamf, dphi):
+    #this one is supposed to be bulletproof (Vincenty formula):
+    dsigma = np.arctan2( np.sqrt((np.cos(lamf)*np.sin(dphi))**2.0 + (np.cos(lams)*np.sin(lamf) - np.sin(lams)*np.cos(lamf)*np.cos(dphi))**2.0 ) , (np.sin(lams)*np.sin(lamf) + np.cos(lams)*np.cos(lamf)*np.cos(dphi))  )
+    #
+    return np.absolute(dsigma)
+
+
+
+
 #==============================================================================
 # Script
 #==============================================================================

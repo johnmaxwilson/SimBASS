@@ -6,66 +6,98 @@ Created on Thu Jan 29 14:41:45 2015
 """
 import numpy as np
 import math
+import matplotlib
 import matplotlib.pyplot as plt
+from mpl_toolkits.basemap import Basemap
 import time
-from geographiclib.geodesic import Geodesic as ggp
+import cPickle
+import datetime as dtm
+import h5py
+import SimBASS_tools as tools
+from scipy.spatial import KDTree
+import matplotlib.animation as animation
 
 #==============================================================================
-# Geo distances
+# #==============================================================================
+# # Using Rtree for spatial binning
+# #==============================================================================
+# from rtree import index
+# from scipy.spatial import KDTree
+# 
+# binsize = 1
+# 
+# lonbounds=[0,10] #[-125.4, -113.1]
+# latbounds=[0,10] #[31.5, 43.0]
+# 
+# lonborders = np.arange(lonbounds[0],lonbounds[1]+binsize, binsize)
+# latborders = np.arange(latbounds[0],latbounds[1]+binsize, binsize)
+# 
+# borders = []
+# for i in range(len(lonborders)-1):
+#     for j in range(len(latborders)-1):
+#         borders.append((lonborders[i], lonborders[i+1], latborders[j], latborders[j+1]))
+# 
+# bins = index.Index(interleaved=False)
+# count = 0
+# for box in borders:
+#     bins.insert(count, box, obj=count)
+#     count += 1
+#     
+# hits = bins.intersection((0,1.5))
+# 
+# for ind in hits:
+#     print ind.obj()
+# 
+# #==============================================================================
+# #  P(A)*A = const?
+# #==============================================================================
+# #==============================================================================
+# # simind = 1
+# # etasBool = 1
+# # bootstrapping = 1
+# # 
+# # filesuff = ['noETAS6.p','omori6.p']
+# # 
+# # sim_fold = "/home/jmwilson/Desktop/raw_output/allcal2"
+# # folderext=['/allcal/version_1a', '/virtcal/z_01', '/pollitz/version_1a', '/rsqsim/version_1a']
+# # sim_loc = sim_fold+folderext[simind]
+# # 
+# # simdat = open(sim_loc + '/ETAS_files/hist_grid_'+filesuff[etasBool], 'r')
+# # sim_info = pickle.load(simdat)
+# # simdat.close()
+# # 
+# # lonlist = np.array(sim_info[0])
+# # latlist = np.array(sim_info[1])
+# # 
+# # sim_grid = np.array(sim_info[2])/np.sum(sim_info[2])
+# # 
+# # n, bins = np.histogram(sim_grid, bins=np.linspace(0,sim_grid.max(), 1001))
+# # plt.close()
+# # plt.bar(bins[:-1], n*bins[:-1], width = (bins[1]-bins[0]))#(bins[:-1]+(bins[1]-bins[0]/2.0)), n*(bins[:-1]+(bins[1]-bins[0]/2.0)))
+#==============================================================================
+# plt.show
 #==============================================================================
 
-def sphericalDistNP(singleloc, otherlocs, distType='rad'):
-    Rearth = 6371.0    # km
-    deg2rad = math.pi/180.0
-    #
-    # phi = longitude, lambda = latitude
-    phis = singleloc[0]*deg2rad    
-    lams  = singleloc[1]*deg2rad
-    phif = otherlocs[..., 0]*deg2rad
-    lamf  = otherlocs[..., 1]*deg2rad
-    dlam = (lamf - lams)
-    dphi = (phif - phis)
-    #
-    #
-    if distType=='rad': dsig = vincentyNP(phis, lams, phif, lamf, dphi)
-    if distType=='rect':
-        lamav = (lamf+lams)/2.0
-        xsigs = vincentyNP(phis, lamav, phif, lamav*np.ones(phif.shape), dphi)
-        xsigs[dphi<0]*=-1
-        ysigs = vincentyNP(0.0, lams, 0.0, lamf, 0.0)
-        ysigs[dlam<0]*=-1
-        dsig = np.concatenate((xsigs[...,np.newaxis], ysigs[...,np.newaxis]), axis=xsigs.ndim)
-    #
-    Dist = Rearth * dsig
-    #
-    return Dist
+fig = plt.figure()
+heights = np.ones((25,25))
 
-def vincentyNP(phis, lams, phif, lamf, dphi):
-    #this one is supposed to be bulletproof (Vincenty formula):
-    dsigma = np.arctan2( np.sqrt((np.cos(lamf)*np.sin(dphi))**2.0 + (np.cos(lams)*np.sin(lamf) - np.sin(lams)*np.cos(lamf)*np.cos(dphi))**2.0 ) , (np.sin(lams)*np.sin(lamf) + np.cos(lams)*np.cos(lamf)*np.cos(dphi))  )
-    #
-    return np.absolute(dsigma)
+areas = np.ones(heights.shape())
+volume = heights/areas
+slopes = np.zeros(heights.shape()+(2))
+momentum = momconst*slopes
+velocity = momentum/volume
 
-def deg2km(deltadegs, lat):
-    Rearth = 6371.0
-    deg2rad = math.pi/180.0
-    latkm = Rearth*(deg2rad*deltadegs[1]) # Rearth * dlat
-    lonkm = Rearth*np.cos(deg2rad*lat)*(deg2rad*deltadegs[0])# Rearth * cos(lat) * dlon
-    kms = (lonkm, latkm)
-    return kms
-
-
-quakeloc = np.array([-116.1332, 33.7054])
-binloc = np.array([[-120.6, 36.3]])
-
-#==============================================================================
-# print np.linalg.norm(deg2km((binloc[0]-quakeloc), (binloc[0][1]+quakeloc[1])/2.0))
-# print np.linalg.norm(sphericalDistNP(quakeloc, binloc, distType='rect')[0])
-# print sphericalDistNP(quakeloc, binloc, distType='rad')[0]
-# print np.linalg.norm((ggp.WGS84.Inverse((quakeloc[1]+binloc[0][1])/2.0, quakeloc[0], (quakeloc[1]+binloc[0][1])/2.0, binloc[0][0])['s12']/1000.0, ggp.WGS84.Inverse(quakeloc[1], 0.0, binloc[0][1], 0.0)['s12']/1000.0))
-# print ggp.WGS84.Inverse(quakeloc[1], quakeloc[0], binloc[0][1], binloc[0][0])['s12']/1000.0
-#==============================================================================
-
-print deg2km((binloc[0]-quakeloc), (binloc[0][1]+quakeloc[1])/2.0)
-print sphericalDistNP(quakeloc, binloc, distType='rect')[0]
-print (ggp.WGS84.Inverse((quakeloc[1]+binloc[0][1])/2.0, quakeloc[0], (quakeloc[1]+binloc[0][1])/2.0, binloc[0][0])['s12']/1000.0, ggp.WGS84.Inverse(quakeloc[1], 0.0, binloc[0][1], 0.0)['s12']/1000.0)
+for step in range(100):
+    for i in range(1,len(heights)-1):
+        for j in range(1,len(heights[0])-1):
+            slopex = heights[i,j+1] - heights[i,j-1]
+            slopey = heights[i+1,j] - heights[i-1,j]
+            slopes[i][j] = (slopex, slopey)
+    
+    momentum = momconst*slopes/volume
+    velocity = momentum/volume
+    
+    im = plt.imshow(heights)
+    ims.append([im])
+    
+    

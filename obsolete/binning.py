@@ -35,7 +35,7 @@ def dict_filler(quakes_f, binsize):
                 hist_dict_f[ind].append(quake)
     return hist_dict_f
 
-file_loc = "/home/jmwilson/Desktop/RELM/cats"
+file_loc = "/home/jmwilson/Desktop/SimBASS/cats"
 sim_rec = np.load(file_loc+'/sim_output/sim_rec.p')
 #cat_rec = np.load('../cats/cat_rec_Feb-05-2015.p')
 

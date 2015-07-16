@@ -14,7 +14,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 from mpl_toolkits.basemap import Basemap
-import RELM_inpoly as poly
+import SimBASS_tools as tools
 
 def omori_el(quakes_f, binpos, abratio=2, strike=30, q=1.5, mag = 7.0, delm=1.0, mc=5.5, b=1.0, lam=1.76):
     flt = float

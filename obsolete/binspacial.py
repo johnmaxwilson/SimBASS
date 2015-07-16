@@ -55,7 +55,7 @@ def dict_filler(quakes_f, extend):
 
 spacialextent = True
 
-file_loc = "/home/jmwilson/Desktop/RELM/sim_output"
+file_loc = "/home/jmwilson/Desktop/SimBASS/sim_output"
 quakes_rec = np.load(file_loc+'/sim_rec.p')
 #quakes_rec = np.load('../cats/cat_rec_Feb-05-2015.p')
 
