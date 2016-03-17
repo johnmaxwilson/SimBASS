@@ -50,7 +50,7 @@ def dict_filler(quakes_f, save_loc = "/home/jmwilson/Desktop/SimBASS/cats"):
 
 def omori(quakes_f, binpos, pca = False, q=1.5, delm=1.0, mc=3.0, b=1.0, lam=1.76, D=1.5):
     flt = float
-    normalize = np.linalg.norm
+    norm = np.linalg.norm
     cosine = np.cos
     sine = np.sin
     
@@ -73,6 +73,7 @@ def omori(quakes_f, binpos, pca = False, q=1.5, delm=1.0, mc=3.0, b=1.0, lam=1.7
             ruptlen = 10**(mag/2.0-lam)
             
             diffgridkm = tools.sphericalDistNP(quakeloc, binpos/10.0, distType='rect') #grid of (x,y) distances to eq in km
+            
             #Calculate strike angle based on locations of nearby events
             fitX = []
             fitY = []
@@ -100,20 +101,20 @@ def omori(quakes_f, binpos, pca = False, q=1.5, delm=1.0, mc=3.0, b=1.0, lam=1.7
                     eigsort = sorted(eigs, key=lambda x: x[0], reverse = True)
                     
                     strikeRad = math.pi/2.0-math.atan(eigsort[0][1][1]/eigsort[0][1][0])
-    #==============================================================================
-    #                 try:
-    #                     abratio = eigsort[0][0]/eigsort[1][0]
-    #                     print abratio
-    #                 except:
-    #                     abratio = 2.0
-    #==============================================================================
-                    abratio = 2.0
+                    #=============================================================
+                    #try:
+                    #    abratio = eigsort[0][0]/eigsort[1][0]
+                    #    print abratio
+                    #except:
+                    #    abratio = 2.0
+                    #=============================================================
+                    abratio = 4.0
             
             transform = [[((coord[0]*cosine(strikeRad)-coord[1]*sine(strikeRad))*abratio, (coord[0]*sine(strikeRad)+coord[1]*cosine(strikeRad))) for coord in row] for row in diffgridkm] #squash and rotate
                     
             #diffgridkm = [[tools.deg2km((binpos[j][i]/10.0-quakeloc), (binpos[j][i][1]/10.0+quakeloc[1])/2.0) for i in xrange(len(binpos[0]))] for j in xrange(len(binpos))]
             
-            radprime = normalize(transform, axis=2)
+            radprime = norm(transform, axis=2)
             
             Nom = 10**(b*(mag-delm-mc))
             
@@ -164,12 +165,12 @@ latlist = np.arange(latmin-edge, latmax+edge+1, 1)
 binpos = np.array([[(x, y) for x in lonlist] for y in latlist])
 
 t0=time.time()
-hist_grid = omori(sim_rec, binpos, pca=True, mc=6.0)
+hist_grid = omori(sim_rec[::int(len(sim_rec)/8000)], binpos, pca=True, mc=6.0)
 print 'time in minutes: ', (time.time()-t0)/60.0
 
 
 rates_array = np.array([lonlist, latlist, hist_grid])
-rates_array.dump(sim_loc+'/ETAS_files/hist_grid_omori6.p')
+rates_array.dump(sim_loc+'/ETAS_files/hist_grid_omori6_abrat4.p')
 
 #==============================================================================
 # Just fill dictionary with ANSS events

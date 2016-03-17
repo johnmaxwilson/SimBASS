@@ -11,7 +11,7 @@ from mpl_toolkits.basemap import Basemap
 import SimBASS_tools as tools
 import pickle
 from scipy.stats import norm
-
+import h5py
 
 #==============================================================================
 # event_names = 'event_id, magnitude, time, duration, sid, depth_lo, depth_hi, das_lo, das_hi, hypo_depth, hypo_das, area, mean_slip, moment, shear_before, shear_after, normal_before, normal_after, hypo_lat, hypo_lon'
@@ -50,6 +50,8 @@ def basemap_plot(file_loc, etasBool):
     #rates_array = np.load(file_loc+'/home/jmwilson/Desktop/SimBASS/BASScast/kml')
     binlocs = np.array([[(x,y) for x in rates_array[0]] for y in rates_array[1]])
     mglon, mglat = np.meshgrid(rates_array[0]/10.0, rates_array[1]/10.0)
+    #Normalize them all
+    rates_array[2] = rates_array[2]/np.sum(rates_array[2])
     #rates_grid = np.ma.masked_array(np.log10(rates_array[2]), mask = tools.makePolyMask(binlocs))
     if etasBool == True:
         binmask = tools.makePolyMask(binlocs)
@@ -57,6 +59,8 @@ def basemap_plot(file_loc, etasBool):
     else:
         binmask = tools.makeFaultMask(binlocs)
         rates_grid = np.ma.masked_array(rates_array[2], mask = binmask)
+        rates_grid = np.ma.masked_where(rates_grid == 0, rates_grid)
+        rates_grid = log10(rates_grid)
     
     #fig = plt.figure(figsize=(14,10.5))
     m = Basemap(projection='cyl', llcrnrlat=31.3, urcrnrlat=43.2, llcrnrlon=-125.6, urcrnrlon=-112.9, resolution='i')
@@ -66,18 +70,28 @@ def basemap_plot(file_loc, etasBool):
     m.drawstates()
     m.drawcountries()
     m.drawparallels(np.arange(30,44,2), labels=[1,0,0,0])
-    m.drawmeridians(np.arange(-124,-115,2), labels=[0,0,0,1])
+    m.drawmeridians(np.arange(-124,-113,2), labels=[0,0,0,1])
     
     maxtick = rates_grid[~rates_grid.mask].max()
     mintick = rates_grid[~rates_grid.mask].min()
-    contlevels = np.linspace(mintick, 1.3, 50)
+    contlevels = np.linspace(mintick, -3.10, 50)
     
     #m.contourf(mglon, mglat, rates_grid, levels=contlevels)
-    m.pcolor(mglon, mglat, rates_grid)
-    #m.plot(simx[::], simy[::], 'k.')
-    #m.plot(realx, realy, 'm.')
+    #m.pcolor(mglon, mglat, rates_grid)
+    #m.plot(simx[::], simy[::], 'm.')
+    
+    faults = h5py.File("../ALLCAL2_Faults/nocreep/ALLCAL2_VQ_faults_3km.h5",'r')
+    vert_coords = []
+    for vert in faults['vertices']:
+        coord = (vert[2],vert[1])
+        if coord not in vert_coords:
+            vert_coords.append(coord)
+    vert_coords = np.array(vert_coords)
+    m.plot(vert_coords[...,0], vert_coords[...,1], 'g.', ms=3)
+    
+    m.plot(realx, realy, 'md')
     #plt.legend()
-    plt.colorbar()
+    #plt.colorbar()
     #plt.xlabel("Longitude")
     #plt.ylabel("Latitude")
     
@@ -94,26 +108,28 @@ def basemap_plot(file_loc, etasBool):
 #==============================================================================
 def ROC_plot(file_loc, etasBool):
     #-----
-    g = open(file_loc + '/ETAS_files/ROC_data_bootstrap2.p', 'r')#
-    roc_data = pickle.load(g)
-    g.close()
-    scores = []
-    for i in range(len(roc_data)):
-        scores.append(roc_data[i]['score'])
-    sortscores = sorted(scores)
-    
-    #plt.subplot(2,1,1)
-    plt.title('ViscoSim ROC curves')
-    for roc_dict in roc_data:
-        Hits = roc_dict['Hits']
-        Hits = Hits[::]
-        Falsies = roc_dict['Falsies']
-        Falsies = Falsies[::]
-        plt.plot(Falsies, Hits, 'y', alpha=0.2)
+#==============================================================================
+#     g = open(file_loc + '/ETAS_files/ROC_data_bootstrap2.p', 'r')#
+#     roc_data = pickle.load(g)
+#     g.close()
+#     scores = []
+#     for i in range(len(roc_data)):
+#         scores.append(roc_data[i]['score'])
+#     sortscores = sorted(scores)
+#     
+#     #plt.subplot(2,1,1)
+#     plt.title('ViscoSim ROC curves')
+#     for roc_dict in roc_data:
+#         Hits = roc_dict['Hits']
+#         Hits = Hits[::]
+#         Falsies = roc_dict['Falsies']
+#         Falsies = Falsies[::]
+#         plt.plot(Falsies, Hits, 'y', alpha=0.2)
+#==============================================================================
     #-----
     
     if etasBool == True:
-        f = open(file_loc + '/ETAS_files/ROC_data_omori6.p', 'r')
+        f = open(file_loc + '/ETAS_files/ROC_data_omori6_abrat4.p', 'r')
     else:
         f = open(file_loc + '/ETAS_files/ROC_data_noETAS6.p', 'r')
     
@@ -136,24 +152,26 @@ def ROC_plot(file_loc, etasBool):
     plt.ylabel('Hits')
     
     #-----
-    plt.figure()
-    #plt.subplot(2,1,2)
-    plt.title('ViscoSim Boostrap ROC scores histogram')
-    mu, std = norm.fit(scores)
-    n, bins, patches = plt.hist(scores, bins=50, normed = True, alpha=0.6)#
-    ymin, ymax = plt.ylim()
-    xmin, xmax = plt.xlim()
-    scoresig = abs(score-mu)/std
-    print scoresig
-    x = np.linspace(xmin, xmax, 500)
-    p = norm.pdf(x, mu, std)
-    plt.plot(x, p, 'k', linewidth=1.6)
-    plt.plot([mu-2*std, mu-2*std], [0, 16], 'k--', linewidth=2.0, label='2 $\sigma$')
-    plt.plot([mu+2*std, mu+2*std], [0, 16], 'k--', linewidth=2.0)
-    plt.plot([score, score], [0, 16], 'r-', linewidth=2.0, label='%.3f $\sigma$'%scoresig)
-    plt.legend()
-    plt.xlabel('ROC Score')
-    plt.ylabel('Normalized Count')
+#==============================================================================
+#     plt.figure()
+#     #plt.subplot(2,1,2)
+#     plt.title('ViscoSim Boostrap ROC scores histogram')
+#     mu, std = norm.fit(scores)
+#     n, bins, patches = plt.hist(scores, bins=50, normed = True, alpha=0.6)#
+#     ymin, ymax = plt.ylim()
+#     xmin, xmax = plt.xlim()
+#     scoresig = abs(score-mu)/std
+#     print scoresig
+#     x = np.linspace(xmin, xmax, 500)
+#     p = norm.pdf(x, mu, std)
+#     plt.plot(x, p, 'k', linewidth=1.6)
+#     plt.plot([mu-2*std, mu-2*std], [0, 16], 'k--', linewidth=2.0, label='2 $\sigma$')
+#     plt.plot([mu+2*std, mu+2*std], [0, 16], 'k--', linewidth=2.0)
+#     plt.plot([score, score], [0, 16], 'r-', linewidth=2.0, label='%.3f $\sigma$'%scoresig)
+#     plt.legend()
+#     plt.xlabel('ROC Score')
+#     plt.ylabel('Normalized Count')
+#==============================================================================
     #-----
     
     
@@ -164,12 +182,12 @@ def ROC_plot(file_loc, etasBool):
 simind = 1
 etasBool = 0
 file_locs = ["/home/jmwilson/Desktop/raw_output/allcal2/allcal/version_1a", "/home/jmwilson/Desktop/raw_output/allcal2/virtcal/z_01", "/home/jmwilson/Desktop/raw_output/allcal2/pollitz/version_1a", "/home/jmwilson/Desktop/raw_output/allcal2/rsqsim/version_1a"]
-titles = ["AllCal", "Virtual Quake", "ViscoSim", "RSQSim"]
+titles = ["AllCal", "Virtual California", "ViscoSim", "RSQSim"]
 #for simind in range(4):
-plt.close('all')
+#plt.close('all')
 fig = plt.figure()#figsize=(9,14))
 #plt.subplot(2,1,1)
-#plt.title(titles[simind])
+plt.title("Shifted Observed Earthquakes and allcal2 Faults")#titles[simind])
 basemap_plot(file_locs[simind], etasBool)
 #plt.subplot(2,1,2)    
 #ROC_plot(file_locs[simind], etasBool)

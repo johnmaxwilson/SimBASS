@@ -21,7 +21,7 @@ cat_names = 'date, hypo_lat, hypo_lon, magnitude, depth'
 # UCERF2: lon=[-124.9322, -114.5771], lat=[31.5676, 42.2008]
 # RELM:   lon=[-125.4, -113.1],       lat=[31.5, 43.0]
 #==============================================================================
-eq_list = ANSStools.catfromANSS(lon=[-125.4, -113.1], lat=[31.5, 43.0], minMag=6.0, dates0=[dtm.datetime(1980,01,01, tzinfo=tzutc), None], fout='../cats/mycat_mc60_1980.cat')
+eq_list = ANSStools.catfromANSS(lon=[-125.4, -113.1], lat=[31.5, 43.0], minMag=7.0, dates0=[dtm.datetime(1915,01,01, tzinfo=tzutc), None], fout='../cats/mycat_mc70_1915.cat')
 
 polyvectors = tools.getPolyVecs()
 
@@ -31,5 +31,7 @@ for eq in eq_list:
         goodeqs.append(eq)
 
 eq_ar = np.array(goodeqs)
-eq_rec = np.core.records.fromarrays(eq_ar.transpose(), names=cat_names)
-eq_rec.dump('../cats/cat_rec_mc60_1980.p')
+#eq_rec = np.core.records.fromarrays(eq_ar.transpose(), names=cat_names)
+#eq_rec.dump('../cats/cat_rec_mc60_1980.p')
+
+print len(eq_ar)

@@ -41,9 +41,9 @@ def ROC_fnc(sim_bins, cat_dict, areasize):
 
 simind = 3
 etasBool = 1
-bootstrapping = 1
+bootstrapping = 0
 
-filesuff = ['noETAS6.p','omori6.p']
+filesuff = ['noETAS6.p','omori6_abrat4.p']
 
 sim_fold = "/home/jmwilson/Desktop/raw_output/allcal2"
 folderext=['/allcal/version_1a', '/virtcal/z_01', '/pollitz/version_1a', '/rsqsim/version_1a']
