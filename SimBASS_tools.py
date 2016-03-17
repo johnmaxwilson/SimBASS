@@ -120,22 +120,22 @@ def sphericalDistNP(singleloc, otherlocs, distType='rad'):
     Rearth = 6371.0    # km
     deg2rad = math.pi/180.0
     #
-    # phi = longitude, lambda = latitude
-    phis = singleloc[0]*deg2rad    
-    lams  = singleloc[1]*deg2rad
-    phif = otherlocs[..., 0]*deg2rad
-    lamf  = otherlocs[..., 1]*deg2rad
-    dlam = (lamf - lams)
+    # lamda = longitude, phi = latitude
+    lams = singleloc[0]*deg2rad    
+    phis  = singleloc[1]*deg2rad
+    lamf = otherlocs[..., 0]*deg2rad
+    phif  = otherlocs[..., 1]*deg2rad
     dphi = (phif - phis)
+    dlam = (lamf - lams)
     #
     #
-    if distType=='rad': dsig = vincentyNP(phis, lams, phif, lamf, dphi)
+    if distType=='rad': dsig = vincentyNP(lams, phis, lamf, phif, dlam)
     if distType=='rect':
-        lamav = (lamf+lams)/2.0
-        xsigs = vincentyNP(phis, lamav, phif, lamav*np.ones(phif.shape), dphi)
-        xsigs[dphi<0]*=-1
-        ysigs = vincentyNP(phis, lams, phis*np.ones(lamf.shape), lamf, 0.0)
-        ysigs[dlam<0]*=-1
+        phiav = (phif+phis)/2.0
+        xsigs = vincentyNP(lams, phiav, lamf, phiav*np.ones(lamf.shape), dlam)
+        xsigs[dlam<0]*=-1
+        ysigs = vincentyNP(lams, phis, lams*np.ones(phif.shape), phif, 0.0)
+        ysigs[dphi<0]*=-1
         dsig = np.concatenate((xsigs[...,np.newaxis], ysigs[...,np.newaxis]), axis=xsigs.ndim)
     #
     Dist = Rearth * dsig
@@ -143,9 +143,9 @@ def sphericalDistNP(singleloc, otherlocs, distType='rad'):
     return Dist
 
 
-def vincentyNP(phis, lams, phif, lamf, dphi):
+def vincentyNP(lams, phis, lamf, phif, dlam):
     #this one is supposed to be bulletproof (Vincenty formula):
-    dsigma = np.arctan2( np.sqrt((np.cos(lamf)*np.sin(dphi))**2.0 + (np.cos(lams)*np.sin(lamf) - np.sin(lams)*np.cos(lamf)*np.cos(dphi))**2.0 ) , (np.sin(lams)*np.sin(lamf) + np.cos(lams)*np.cos(lamf)*np.cos(dphi))  )
+    dsigma = np.arctan2( np.sqrt((np.cos(phif)*np.sin(dlam))**2.0 + (np.cos(phis)*np.sin(phif) - np.sin(phis)*np.cos(phif)*np.cos(dlam))**2.0 ) , (np.sin(phis)*np.sin(phif) + np.cos(phis)*np.cos(phif)*np.cos(dlam))  )
     #
     return np.absolute(dsigma)
 
@@ -195,7 +195,6 @@ def ANSS_cat():
     eq_ar = np.array(goodeqs)
     eq_rec = np.core.records.fromarrays(eq_ar.transpose(), names=cat_names)
     eq_rec.dump('../cats/cat_rec_mc60_1980.p')
-
 
 
 #==============================================================================
